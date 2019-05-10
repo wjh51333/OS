@@ -1,6 +1,6 @@
-// OS Team11 1¹ø
-// 2017110280 ÀÌÀç¿µ
-// 2017113426 ¿ìÁöÇö
+// OS Team11 1ë²ˆ
+// 2017110280 ì´ì¬ì˜
+// 2017113426 ìš°ì§€í˜„
 
 #define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
@@ -15,11 +15,14 @@ int allocation[CUSTOMERS][RESOURCES];
 int maximum[CUSTOMERS][RESOURCES];
 int available[RESOURCES];
 int need[CUSTOMERS][RESOURCES];
+int instance[RESOURCES];
 
 int init(void);
 int request_resources(int, int[]);
 int safety(void);
 int release_resources(int, int[]);
+
+void init();
 
 int main(void)
 {
@@ -66,16 +69,16 @@ int request_resources(int index, int req[])
 	int i;
 	int temp_allocation[3], temp_need[3], temp_available[3];
 
-	/*step1. need[index]¿Í ºñ±³*/
+	/*step1. need[index]ì™€ ë¹„êµ*/
 	for (i = 0; i < RESOURCES; i++) {
 		if (req[i] > need[index][i])
-			return -1;// -1: step1¿¡¼­ ½ÇÆĞ
+			return -1;// -1: step1ì—ì„œ ì‹¤íŒ¨
 	}
 
-	/*step2. available°ú ºñ±³*/
+	/*step2. availableê³¼ ë¹„êµ*/
 	for (i = 0; i < RESOURCES; i++) {
 		if (req[i] > available[i])
-			return -2;// -2: step2¿¡¼­ ½ÇÆĞ
+			return -2;// -2: step2ì—ì„œ ì‹¤íŒ¨
 	}
 
 	/*step3*/
@@ -147,4 +150,6 @@ int safety(void)
 int release_resources(int customer, int release[])
 {
 
+=======
+	return 0;
 }
