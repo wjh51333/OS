@@ -8,61 +8,54 @@
 #define CUSTOMERS 5
 #define RESOURCES 3
 
-int allocation[CUSTOMERS][RESOURCES];
-int maximum[CUSTOMERS][RESOURCES];
 int available[RESOURCES];
+int maximum[CUSTOMERS][RESOURCES];
+int allocation[CUSTOMERS][RESOURCES];
 int need[CUSTOMERS][RESOURCES];
+int instance[RESOURCES];
 
-int init();
 int request_resources(int, int[]);
 int release_resources(int, int[]);
 
+void init();
+
 int main(void)
 {
-	int cstm;
-	int arr[RESOURCES];
-	int i = 0;
 
-	init();
+
+
 
 	return 0;
 }
 
-int init(void)
+int request_resources(int index, int *req)
 {
-	FILE *f;
-	int i, j;
+	int i;
+	int temp_allocation[3], temp_need[3], temp_available[3];
 
-	f = fopen("input.txt", "r");
-
-	for (i = 0; i < RESOURCES; i++)
-		fscanf(f, "%d", available[i]);
-
-	for (i = 0; i < CUSTOMERS; i++) {
-		for (j = 0; j < RESOURCES; j++) {
-			fscanf(f, "&%d", allocation[i][j]);
-			available[j] -= allocation[i][j];
-		}
+	/*step1. need[index]와 비교*/
+	for (i = 0; i < RESOURCES; i++) {
+		if (req[i] > need[index][i])
+			return -1;// -1: step1에서 실패
 	}
 
-	for (i = 0; i < CUSTOMERS; i++)
-		for (j = 0; j < RESOURCES; j++)
-			fscanf(f, "&%d", maximum[i][j]);
-	
-	fclose(f);
+	/*step2. available과 비교*/
+	for (i = 0; i < RESOURCES; i++) {
+		if (req[i] > available[i])
+			return -2;// -2: step2에서 실패
+	}
 
-	for (i = 0; i < CUSTOMERS; i++)
-		for (j = 0; j < RESOURCES; j++)
-			need[i][j] = maximum[i][j] - allocation[i][j];
+	/*step3*/
+	for (i = 0; i < RESOURCES; i++) {
+		temp_available[i] = allocation[index][i]- req[i];
+		temp_allocation[i] += req[i];
+		temp_need[i] -= req[i];
+	}
 
-}
-
-int request_resources(int customer, int request[])
-{
-
-}
-
-int release_resources(int customer, int release[])
-{
-
+	if (safety(index, temp_available, temp_allocation, temp_need) == 1)
+		for(i = 0; i < RESOURCES; i++){
+			available[i] = temp_available[i];
+			allocation[index][i] = temp_allocation[i];
+			need[index][i] = temp_need[i];
+		}
 }
