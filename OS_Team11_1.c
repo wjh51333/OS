@@ -140,8 +140,6 @@ unsigned WINAPI request_resources(void *arg)
 	}
 
 	if (!safety()) {
-		printf("Error : unsafe state!!\n");
-
 		printf("Allocation	   MAX	          Need	        Available\n");
 		for (i = 0; i < CUSTOMERS; i++) {
 			for (j = 0; j < RESOURCES; j++) {
@@ -161,6 +159,8 @@ unsigned WINAPI request_resources(void *arg)
 			}
 			printf("\n");
 		}
+
+		printf("Error : unsafe state!!\n");
 
 		for (i = 0; i < RESOURCES; i++) {
 			available[i] += res[i];
