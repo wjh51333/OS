@@ -1,100 +1,179 @@
-// OS Team11 1Î≤à
-// 2017110280 Ïù¥Ïû¨ÏòÅ
-// 2017113426 Ïö∞ÏßÄÌòÑ
+// OS Team11 1π¯
+// 2017110280 ¿Ã¿Áøµ
+// 2017113426 øÏ¡ˆ«ˆ
 
 #define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <process.h>
+#include <windows.h>
+
 #define CUSTOMERS 5
 #define RESOURCES 3
-#define TRY_MAX 10
+#define TRY_MAX 100
 #define TRUE 1
 #define FALSE 0
 
+HANDLE hMutex;
 int allocation[CUSTOMERS][RESOURCES];
 int maximum[CUSTOMERS][RESOURCES];
-int available[RESOURCES];
 int need[CUSTOMERS][RESOURCES];
-int instance[RESOURCES];
+int available[RESOURCES];
 
-int init(void);
-int request_resources(int, int[]);
+int index;
+int res[RESOURCES];
+
+void init(void);
+unsigned WINAPI request_resources(void *);
 int safety(void);
-int release_resources(int, int[]);
-
-void init();
+unsigned WINAPI release_resources(void *);
 
 int main(void)
 {
-	int cstm;
-	int arr[RESOURCES];
-	int i = 0;
+	HANDLE tHandles[CUSTOMERS];
+	int i, j;
+	char arr[30];
+
+	//hMutex = CreateMutex(NULL, FALSE, NULL);
 
 	init();
+
+	for (i = 0; i < CUSTOMERS; i++) {
+		printf("which process? ");
+		scanf("%d", &index);
+
+		printf("request or release? ");
+		scanf("%s", arr);
+
+		printf("(A B C)? ");
+		for (j = 0; j < RESOURCES; j++)
+			scanf("%d", &res[j]);
+
+		if (strcmp(arr, "request") == 0)
+			tHandles[index] = (HANDLE)_beginthreadex(NULL, 0, request_resources, NULL, 0, NULL);
+		else if (strcmp(arr, "release") == 0)
+			tHandles[index] = (HANDLE)_beginthreadex(NULL, 0, release_resources, NULL, 0, NULL);
+
+		WaitForSingleObject(tHandles[index], INFINITE);
+
+		printf("\n\n");
+	}
+
+	WaitForMultipleObjects(CUSTOMERS, tHandles, TRUE, INFINITE);
+	CloseHandle(hMutex);
 
 	return 0;
 }
 
-int init(void)
+void init(void)
 {
 	FILE *f;
 	int i, j;
 
-	f = fopen("input.txt", "r");
+	if ((f = fopen("input.txt", "r")) == NULL) {
+		printf("Failed to open file\n");
+		exit(0);
+	}
 
+	// resources
 	for (i = 0; i < RESOURCES; i++)
-		fscanf(f, "%d", available[i]);
-
+		fscanf(f, "%d ", &available[i]);
+	
+	// allocation & available 
 	for (i = 0; i < CUSTOMERS; i++) {
 		for (j = 0; j < RESOURCES; j++) {
-			fscanf(f, "&%d", allocation[i][j]);
+			fscanf(f, "%d ", &allocation[i][j]);
 			available[j] -= allocation[i][j];
 		}
 	}
 
+	// maximum
 	for (i = 0; i < CUSTOMERS; i++)
 		for (j = 0; j < RESOURCES; j++)
-			fscanf(f, "&%d", maximum[i][j]);
+			fscanf(f, "%d ", &maximum[i][j]);
 	
 	fclose(f);
 
+	// need
 	for (i = 0; i < CUSTOMERS; i++)
 		for (j = 0; j < RESOURCES; j++)
 			need[i][j] = maximum[i][j] - allocation[i][j];
 
 }
 
-int request_resources(int index, int req[])
+unsigned WINAPI request_resources(void *arg)
 {
-	int i;
-	int temp_allocation[3], temp_need[3], temp_available[3];
+	int i, j;
+	int check = 0;
+	
+	WaitForSingleObject(hMutex, INFINITE);
 
-	/*step1. need[index]ÏôÄ ÎπÑÍµê*/
+	printf("P%d request (", index);
+	for (i = 0; i < RESOURCES - 1; i++)
+		printf("%d ", res[i]);
+	printf("%d)\n", res[i]);
+
+	/*step1. need[index]øÕ ∫Ò±≥*/
 	for (i = 0; i < RESOURCES; i++) {
-		if (req[i] > need[index][i])
-			return -1;// -1: step1ÏóêÏÑú Ïã§Ìå®
+		if (res[i] > need[index][i]) {
+			printf("Error : Requests more than the number of resources in the system\n");
+			ReleaseMutex(hMutex);
+			return 0;
+		}
 	}
 
-	/*step2. availableÍ≥º ÎπÑÍµê*/
+	/*step2. available∞˙ ∫Ò±≥*/
 	for (i = 0; i < RESOURCES; i++) {
-		if (req[i] > available[i])
-			return -2;// -2: step2ÏóêÏÑú Ïã§Ìå®
+		if (res[i] > available[i]) {
+			printf("Error : Lack of resources\n");
+			ReleaseMutex(hMutex);
+			return 0;
+		}
 	}
 
 	/*step3*/
 	for (i = 0; i < RESOURCES; i++) {
-		available[i] = allocation[index][i] - req[i];
-		allocation[index][i] += req[i];
-		need[index][i] -= req[i];
+		available[i] -= res[i];
+		allocation[index][i] += res[i];
+		need[index][i] -= res[i];
 	}
 
 	if (!safety()) {
+		printf("Error : unsafe state!!\n");
+
+		printf("Allocation	   MAX	          Need	        Available\n");
+		for (i = 0; i < CUSTOMERS; i++) {
+			for (j = 0; j < RESOURCES; j++) {
+				printf("%2d ", allocation[i][j]);
+			}
+			printf("	");
+			for (j = 0; j < RESOURCES; j++)
+				printf("%2d ", maximum[i][j]);
+			printf("	");
+			for (j = 0; j < RESOURCES; j++)
+				printf("%2d ", need[i][j]);
+
+			if (i == 0) {
+				printf("	");
+				for (j = 0; j < RESOURCES; j++)
+					printf("%2d ", available[j]);
+			}
+			printf("\n");
+		}
+
 		for (i = 0; i < RESOURCES; i++) {
-			available[i] += req[i];
-			allocation[index][i] -= req[i];
-			need[index][i] += req[i];
+			available[i] += res[i];
+			allocation[index][i] -= res[i];
+			need[index][i] += res[i];
 		}
 	}
+	else
+		printf("Successfull request!!\n");
+	
+	ReleaseMutex(hMutex);
+
+	return 0;
 }
 
 int safety(void)
@@ -112,7 +191,8 @@ int safety(void)
 		if (rpt >= TRY_MAX)
 			return 0;
 
-		for (i = num; i < CUSTOMERS; i = (i+1) % CUSTOMERS) {
+		// check == 1¿Ã∏È fin[i] == FALSE¿Œ P[i]∞° ¿÷¥Ÿ
+		for (i = num; i != num; i = (i+1) % CUSTOMERS) {
 			if (fin[i] == FALSE) {
 				num = i; check = 1;
 				break;
@@ -126,6 +206,7 @@ int safety(void)
 			return 1;
 
 		for (i = 0; i < RESOURCES; i++) {
+			// need[i] > work¿Ã∏È break
 			if (need[num][i] > work[i]) {
 				check = 0;
 				break;
@@ -144,12 +225,48 @@ int safety(void)
 		num = (num + 1) % CUSTOMERS;
 		rpt++;
 	}
-
 }
 
-int release_resources(int customer, int release[])
-{
 
-=======
+unsigned WINAPI release_resources(void *arg)
+{
+	int i;
+	int check = 0;
+
+	WaitForSingleObject(hMutex, INFINITE);
+	
+	printf("P%d release (", index);
+	for (i = 0; i < RESOURCES - 1; i++)
+		printf("%d ", res[i]);
+	printf("%d)\n", res[i]);
+
+	// check == 1¿Ã∏È ∞°¡ˆ∞Ì ¿÷¥¬ resource ∞≥ºˆ∫∏¥Ÿ ¥ı ∏π¿∫ resource release
+	for (i = 0; i < RESOURCES; i++) {
+		if (allocation[index][i] < res[i]) {
+			check = 1;
+			break;
+		}
+	}
+
+	if (!check) {
+		for (i = 0; i < RESOURCES; i++) {
+			available[i] += res[i];
+			allocation[index][i] -= res[i];
+			need[index][i] += res[i];
+		}
+
+		printf("Successfull release!!\n");
+	}
+	else {
+		printf("Error : More resources release than P%d has | P%d has (", index, index);
+
+		for (i = 0; i < RESOURCES - 1; i++)
+			printf("%d ", allocation[index][i]);
+		printf("%d)\n", allocation[index][i]);
+	}
+
+
+	ReleaseMutex(hMutex);
+
 	return 0;
 }
