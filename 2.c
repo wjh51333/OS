@@ -4,6 +4,7 @@
 #define TRUE 1
 
 typedef struct node *nodePointer;
+typedef struct box *boxPointer;
 
 typedef struct node {
 	int vertex;
@@ -11,14 +12,17 @@ typedef struct node {
 	nodePointer link;
 };
 
-typedef struct {
+typedef struct box{
 	int index;
-	box* link;
-}box;
+	boxPointer next;
+};
+
+
+boxPointer *allocate=NULL;
+boxPointer *request=NULL;
 
 nodePointer *graph = NULL;
-box *allocate=NULL;
-box *request=NULL;
+
 
 int *visited = NULL;
 int *cycle = NULL, cnt = 0;
@@ -116,7 +120,7 @@ int get_num(FILE *f)
 {
 	char a1,b1;
 	int a2,b2,plast=0;
-	int i,j;
+	int i;
 
 	while(!feof(f))
 	{
@@ -140,10 +144,47 @@ int get_num(FILE *f)
 
 	fclose(f);
 	/* wait_graph √ ±‚»≠ */
-	allocate=(box*)malloc(sizeof(box)*(rlast+1));
-	request=(box*)malloc(sizeof(box)*(rlast+1));
+	allocate=(boxPointer*)malloc(sizeof(boxPointer)*(rlast+1));
+	request=(boxPointer*)malloc(sizeof(boxPointer)*(rlast+1));
+	for(i=0;i<=rlast;i++)
+	{
+		allocate[i]=NULL;
+		request[i]=NULL;
+	}
 
 	return plast;
+}
+
+void make_box(int index, int content, char type)
+{
+	boxPointer last,node;
+
+	node = (boxPointer)malloc(sizeof(struct box));
+	node->index=content;
+	node->next = NULL;
+
+	if(type=='A'){
+		if(allocate[index]==NULL)
+			allocate[index]=node;
+		else
+		{
+			last=allocate[index];
+			while(last->next!=NULL)
+				last=last->next;
+			last->next=node;
+		}
+	}
+	else if(type=='R'){
+		if(request[index]==NULL)
+			request[index]=node;
+		else
+		{
+			last=request[index];
+			while(last->next!=NULL)
+				last=last->next;
+			last->next=node;
+		}
+	}
 }
 
 int main()
@@ -153,7 +194,7 @@ int main()
 	FILE *f;
 	char u1,v1;
 	int u2,v2;
-	box* last,*temp;
+	boxPointer reqNext=NULL, aloNext=NULL;
 
 	f = fopen("input.txt", "r");
 	num=get_num(f);
@@ -170,51 +211,27 @@ int main()
 		fscanf(f,"%c%d %c%d ",&u1,&u2,&v1,&v2);
 		if(u1=='R')
 		{
-			if(allocate[u2].index == 0){
-				allocate[u2].index=v2;
-				allocate[u2].link=NULL;
-			}
-			
-			else{
-				last=allocate[u2].link;
-				while(last->link!=NULL){
-					last=last->link;
-				}
-				temp = (box*)malloc(sizeof(box));
-				temp->index=v2;
-				temp->link=NULL;
-				last->link=temp;
-			}
+			make_box(u2,v2,'A');//allocate[u2].index=v2;
 		}
 		else if(v1='R')
 		{
-			if(request[v2].index == 0){
-				request[v2].index=u2;
-				request[v2].link=NULL;
-			}
-			
-			else{
-				last=request[v2].link;
-				while(last->link!=NULL){
-					last=last->link;
-				}
-				temp=(box*)malloc(sizeof(box));
-				temp->index=u2;
-				temp->link=NULL;
-				last->link=temp;
-			}
+			make_box(v2,u2,'R');//request[v2].index=u2;
 		}
 	}
-	/*************************************************************/
+
 	for(i=1;i<=rlast;i++){
-		while(allocate[i].link!=NULL)
+		aloNext=allocate[i];	
+		while(aloNext!=NULL)
 		{
-			while(request[i].link!=NULL)
+			reqNext=request[i];
+			while(reqNext!=NULL)
 			{
-				if(allocate[i].index!=0 && request[i].index!=0){
-					addNode(request[i].index, allocate[i].index, 0);
+				if(aloNext->index!=0 && reqNext->index!=0){
+					addNode(reqNext->index, aloNext->index, 0);
 				}
+				reqNext=reqNext->next;
 			}
+			aloNext=aloNext->next;
 		}
 
 	}
