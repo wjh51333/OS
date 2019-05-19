@@ -16,13 +16,9 @@ typedef struct {
 	box* link;
 }box;
 
-typedef struct{
-	box request;
-	box allocate;
-}waitGraph;
-
 nodePointer *graph = NULL;
-waitGraph *wait = NULL;
+box *allocate=NULL;
+box *request=NULL;
 
 int *visited = NULL;
 int *cycle = NULL, cnt = 0;
@@ -144,7 +140,9 @@ int get_num(FILE *f)
 
 	fclose(f);
 	/* wait_graph 초기화 */
-	wait=(waitGraph*)malloc(sizeof(waitGraph)*(rlast+1));
+	allocate=(box*)malloc(sizeof(box)*(rlast+1));
+	request=(box*)malloc(sizeof(box)*(rlast+1));
+
 	return plast;
 }
 
@@ -167,18 +165,18 @@ int main()
 	for (i = 0; i <= num; i++){
 		graph[i] = NULL;
 	}
-	/*************************이부분 다시********************************/
+	
 	while(!feof(f)){
 		fscanf(f,"%c%d %c%d ",&u1,&u2,&v1,&v2);
 		if(u1=='R')
 		{
-			if(wait[u2].allocate.index == 0){
-				wait[u2].allocate.index=v2;
-				wait[u2].allocate.link=NULL;
+			if(allocate[u2].index == 0){
+				allocate[u2].index=v2;
+				allocate[u2].link=NULL;
 			}
 			
 			else{
-				last=wait[u2].allocate.link;
+				last=allocate[u2].link;
 				while(last->link!=NULL){
 					last=last->link;
 				}
@@ -190,13 +188,13 @@ int main()
 		}
 		else if(v1='R')
 		{
-			if(wait[v2].allocate.index == 0){
-				wait[v2].allocate.index=u2;
-				wait[v2].allocate.link=NULL;
+			if(request[v2].index == 0){
+				request[v2].index=u2;
+				request[v2].link=NULL;
 			}
 			
 			else{
-				last=wait[v2].allocate.link;
+				last=request[v2].link;
 				while(last->link!=NULL){
 					last=last->link;
 				}
@@ -209,12 +207,12 @@ int main()
 	}
 	/*************************************************************/
 	for(i=1;i<=rlast;i++){
-		while(wait[i].allocate.link!=NULL)
+		while(allocate[i].link!=NULL)
 		{
-			while(wait[i].request.link!=NULL)
+			while(request[i].link!=NULL)
 			{
-				if(wait[i].allocate.index!=0 && wait[i].request.index!=0){
-					addNode(wait[i].request.index, wait[i].allocate.index, 0);
+				if(allocate[i].index!=0 && request[i].index!=0){
+					addNode(request[i].index, allocate[i].index, 0);
 				}
 			}
 		}
