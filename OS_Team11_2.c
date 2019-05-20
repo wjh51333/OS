@@ -79,27 +79,27 @@ void search(int u, nodePointer *trail, nodePointer *temp)
 	}
 }
 
-void addNode(nodePointer *temp, int v, int u)
+void addNode(nodePointer *list, int u)
 {
-	nodePointer node, trail = NULL;
+	nodePointer node, trail = NULL, temp = *list;
 
 	node = (nodePointer)malloc(sizeof(struct node));
 	node->vertex = u;
 	node->link = NULL;
 
-	if (!temp[v]) {
-		temp[v] = node;
+	if (!(*list)) {
+		*list = node;
 	}
 	else {
-		search(node->vertex, &trail, &temp[v]);
+		search(node->vertex, &trail, &temp);
 
 		if (trail == NULL) {
-			temp[v] = node;
-			node->link = temp[v];
+			*list = node;
+			node->link = temp;
 		}
 		else {
 			trail->link = node;
-			node->link = temp[v];
+			node->link = temp;
 		}
 	}
 }
@@ -110,6 +110,7 @@ void printResult(void)
 	int i;
 
 	// request edge
+	printf("Adjacency list of RAG\n");
 	for (i = 1; i <= pnum; i++) {
 		temp = request[i];
 
@@ -132,8 +133,10 @@ void printResult(void)
 		}
 		printf("\n");
 	}
+	printf("\n");
 
 	// wait-for graph
+	printf("Adjacency list of wait-for graph\n");
 	for (i = 1; i <= pnum; i++) {
 		temp = graph[i];
 
@@ -144,6 +147,7 @@ void printResult(void)
 		}
 		printf("\n");
 	}
+	printf("\n");
 }
 
 int isCyclic(int v, int parent)
@@ -210,28 +214,29 @@ int main()
 
 	while (!feof(f)) {
 
-		fscanf(f, "%c%d %c%d", &u.ar, &u.vertex, &v.ar, &v.vertex);
+		fscanf(f, "%c%d %c%d ", &u.ar, &u.vertex, &v.ar, &v.vertex);
 
 		if (u.ar == 'R') {
 			// allocation edge R[u.vertex] -> P[v.vertex]
-			addNode(alloc, u.vertex, v.vertex);
+			addNode(&alloc[u.vertex], v.vertex);
 		}
 		else {
 			// request edge P[u.vertex] -> R[v.vertex]
-			addNode(request, u.vertex, v.vertex);
+			addNode(&request[u.vertex], v.vertex);
 		}
 	}
 
 	fclose(f);
 
+	// make wait-for graph
 	for (i = 1; i <= pnum; i++) {
 		reqNext = request[i];
 
-		while (request != NULL) {
+		while (reqNext != NULL) {
 			allocNext = alloc[reqNext->vertex];
-			while (allocNext != NULL)
-			{
-				addNode(graph, i, allocNext->vertex);
+
+			while (allocNext != NULL) {
+				addNode(&graph[i], allocNext->vertex);
 				allocNext = allocNext->link;
 			}
 			reqNext = reqNext->link;
