@@ -25,6 +25,7 @@ nodePointer *request = NULL;
 
 int *visited = NULL;
 int *cycle = NULL, cnt = 0;
+int *next = NULL, index = 0;
 int pnum, rnum;
 
 void get_size(void)
@@ -133,7 +134,7 @@ void printResult(void)
 		}
 		printf("\n");
 	}
-	printf("\n");
+	printf("\n\n");
 
 	// wait-for graph
 	printf("Adjacency list of wait-for graph\n");
@@ -153,41 +154,92 @@ void printResult(void)
 int isCyclic(int v, int parent)
 {
 	nodePointer w;
+	int i;
 
-	visited[v] = TRUE;
+	visited[v] = TRUE;                
 
-	for (w = graph[v]; w; w = w->link) {
+	for (w = graph[v], i = 0; w; w = w->link) {
+		if (index > 0 && w->vertex == next[i]) {
+			i++;
+			continue;
+		}
+
 		if (!visited[w->vertex]) {
 			if (isCyclic(w->vertex, v)) {
 				cycle[cnt++] = w->vertex;
+
+				if (w->link != NULL)
+					next[index++] = w->vertex;
+
+				visited[v] = FALSE;
+				
 				return TRUE;
 			}
 		}
 		else if (w->vertex != parent) {
 			cycle[cnt++] = w->vertex;
+			visited[v] = FALSE;
+
 			return TRUE;
 		}
 	}
-
+	
 	return FALSE;
 }
 
-int cycleCheck(int num)
+void cycleCheck(int num)
 {
-	int i;
+	int i, j, k;
+	int check = 0;
 
 	visited = (int*)malloc((num + 1) * sizeof(int));
 	cycle = (int*)malloc((num + 1) * sizeof(int));
+	next = (int*)malloc((num + 1) * sizeof(int));
 
 	for (i = 0; i <= num; i++)
-		visited[i] = cycle[i] = 0;
+		visited[i] = cycle[i] = next[i] = 0;
 
-	for (i = 1; i <= num; i++)
-		if (!visited[i])
-			if (isCyclic(i, -1))
-				return TRUE;
+	for (i = 1; i <= num; i++) {
+		if (!visited[i]) {
+			if (isCyclic(i, -1)) {
+				if (cnt < 2)
+					continue;
 
-	return FALSE;
+				check++;
+				printf("P%d ", cycle[0]);
+
+				if (cycle[1] < cycle[cnt - 1]) {
+					for (j = 1; j < cnt; j++)
+						printf("P%d ", cycle[j]);
+				}
+				else {
+					for (j = cnt - 1; j > 0; j--)
+						printf("P%d ", cycle[j]);
+				}
+				printf("\n");
+
+				if (index > 0)
+					i--;
+			}
+			else {
+				for (j = i + 1, k = 0; j <= num; j++) {
+					if (j == next[k]) {
+						visited[j] = TRUE;
+						k++;
+					}
+					else
+						visited[j] = FALSE;
+				}
+
+				index = 0;
+			}
+
+			cnt = 0;
+		}
+	}
+
+	if (check == 0)
+		printf("No cycle!!\n");
 }
 
 void freeList(nodePointer *ptr)
@@ -245,28 +297,14 @@ int main()
 
 	printResult();
 
-	/*
-	if (!cycleCheck(pnum))
-		printf("N\n");
-	else {
-		printf("P%d ", cycle[0]);
+	cycleCheck(pnum);
 
-		if (cycle[1] < cycle[cnt - 1]) {
-			for (i = 1; i < cnt; i++)
-				printf("P%d ", cycle[i]);
-		}
-		else {
-			for (i = cnt - 1; i > 0; i--)
-				printf("P%d ", cycle[i]);
-		}
-	}*/
-
-
-	/*for (i = 0; i <= pnum; i++)
+	for (i = 0; i <= pnum; i++)
 		freeList(&graph[i]);
 	free(graph);
 	free(visited);
-	free(cycle);*/
+	free(cycle);
+	free(next);
 
 	return 0;
 }
