@@ -28,6 +28,7 @@ void init(void);
 unsigned WINAPI request_resources(void *);
 int safety(void);
 unsigned WINAPI release_resources(void *);
+void printResult(void);
 
 int main(void)
 {
@@ -38,6 +39,9 @@ int main(void)
 	//hMutex = CreateMutex(NULL, FALSE, NULL);
 
 	init();
+
+	printResult();
+	printf("\n");
 
 	for (i = 0; i < CUSTOMERS; i++) {
 		printf("which process? ");
@@ -71,7 +75,7 @@ void init(void)
 	FILE *f;
 	int i, j;
 
-	if ((f = fopen("input.txt", "r")) == NULL) {
+	if ((f = fopen("input1.txt", "r")) == NULL) {
 		printf("Failed to open file\n");
 		exit(0);
 	}
@@ -104,11 +108,12 @@ void init(void)
 
 unsigned WINAPI request_resources(void *arg)
 {
-	int i, j;
+	int i;
 	int check = 0;
 	
 	WaitForSingleObject(hMutex, INFINITE);
 
+	// P[index] request (A B C)
 	printf("P%d request (", index);
 	for (i = 0; i < RESOURCES - 1; i++)
 		printf("%d ", res[i]);
@@ -139,26 +144,10 @@ unsigned WINAPI request_resources(void *arg)
 		need[index][i] -= res[i];
 	}
 
+	// safety algorithm
+	// safety() == 0ÀÌ¸י unsafe state
 	if (!safety()) {
-		printf("Allocation	   MAX	          Need	        Available\n");
-		for (i = 0; i < CUSTOMERS; i++) {
-			for (j = 0; j < RESOURCES; j++) {
-				printf("%2d ", allocation[i][j]);
-			}
-			printf("	");
-			for (j = 0; j < RESOURCES; j++)
-				printf("%2d ", maximum[i][j]);
-			printf("	");
-			for (j = 0; j < RESOURCES; j++)
-				printf("%2d ", need[i][j]);
-
-			if (i == 0) {
-				printf("	");
-				for (j = 0; j < RESOURCES; j++)
-					printf("%2d ", available[j]);
-			}
-			printf("\n");
-		}
+		printResult();
 
 		printf("Error : unsafe state!!\n");
 
@@ -184,6 +173,7 @@ int safety(void)
 	int check = 0, num = 0;
 	int i = 0;
 
+	// work = available
 	for (i = 0; i < RESOURCES; i++)
 		work[i] = available[i];
 
@@ -235,6 +225,7 @@ unsigned WINAPI release_resources(void *arg)
 
 	WaitForSingleObject(hMutex, INFINITE);
 	
+	// P[index] release (A B C)
 	printf("P%d release (", index);
 	for (i = 0; i < RESOURCES - 1; i++)
 		printf("%d ", res[i]);
@@ -269,4 +260,28 @@ unsigned WINAPI release_resources(void *arg)
 	ReleaseMutex(hMutex);
 
 	return 0;
+}
+
+void printResult() {
+	int i, j;
+
+	printf("Allocation	   MAX	          Need	        Available\n");
+	for (i = 0; i < CUSTOMERS; i++) {
+		for (j = 0; j < RESOURCES; j++) {
+			printf("%2d ", allocation[i][j]);
+		}
+		printf("	");
+		for (j = 0; j < RESOURCES; j++)
+			printf("%2d ", maximum[i][j]);
+		printf("	");
+		for (j = 0; j < RESOURCES; j++)
+			printf("%2d ", need[i][j]);
+
+		if (i == 0) {
+			printf("	");
+			for (j = 0; j < RESOURCES; j++)
+				printf("%2d ", available[j]);
+		}
+		printf("\n");
+	}
 }

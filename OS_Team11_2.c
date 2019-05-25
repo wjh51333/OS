@@ -34,7 +34,7 @@ void get_size(void)
 	type temp[2];
 	int i;
 
-	f = fopen("input.txt", "r");
+	f = fopen("input2.txt", "r");
 
 	pnum = rnum = 0;
 	while (!feof(f))
@@ -111,7 +111,7 @@ void printResult(void)
 	int i;
 
 	// request edge
-	printf("Adjacency list of RAG\n");
+	printf("--------Adjacency list of RAG--------\n");
 	for (i = 1; i <= pnum; i++) {
 		temp = request[i];
 
@@ -137,7 +137,7 @@ void printResult(void)
 	printf("\n\n");
 
 	// wait-for graph
-	printf("Adjacency list of wait-for graph\n");
+	printf("--------Adjacency list of wait-for graph--------\n");
 	for (i = 1; i <= pnum; i++) {
 		temp = graph[i];
 
@@ -158,9 +158,11 @@ int isCyclic(int v, int parent, int *i)
 	visited[v] = TRUE;                
 
 	for (w = graph[v]; w; w = w->link) {
+		// 이미 지나갔던 노드는 넘어가기
 		if (index > *i && w->vertex == next[*i]) {
 			(*i)++;
 			
+			// 같은 사이클을 만들지 않기 위한 조건
 			if (graph[(w->link)->vertex]->vertex == next[*i])
 				next[index++] = next[*i];
 
@@ -172,6 +174,7 @@ int isCyclic(int v, int parent, int *i)
 				cycle[cnt++] = w->vertex;
 				visited[v] = FALSE;
 
+				// 지금 노드는 한번 들렀다는 표시
 				if (w->link != NULL)
 					next[index++] = w->vertex;
 
@@ -182,6 +185,7 @@ int isCyclic(int v, int parent, int *i)
 			cycle[cnt++] = w->vertex;
 			visited[v] = FALSE;
 
+			// 지금 노드는 한번 들렀다는 표시
 			if (w->link != NULL)
 				next[index++] = w->vertex;
 
@@ -196,7 +200,7 @@ void cycleCheck(int num)
 {
 	int i, j;
 	int check = 0; // cycle 개수
-	int now = 0;
+	int now = 0; // next 배열의 현재 index 표시
 
 	visited = (int*)malloc((num + 1) * sizeof(int));
 	cycle = (int*)malloc((num + 1) * sizeof(int));
@@ -207,7 +211,7 @@ void cycleCheck(int num)
 	for (i = 0; i < 100; i++)
 		next[i] = 0;
 
-	printf("cycle\n");
+	printf("--------Adjacency list of cycles founded--------\n");
 
 	for (i = 1; i <= num; i++) {
 		if (!visited[i]) {
@@ -266,7 +270,7 @@ int main()
 
 	get_size();
 
-	f = fopen("input.txt", "r");
+	f = fopen("input2.txt", "r");
 
 	while (!feof(f)) {
 
