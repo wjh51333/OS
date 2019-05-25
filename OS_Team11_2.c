@@ -25,7 +25,7 @@ nodePointer *request = NULL;
 
 int *visited = NULL;
 int *cycle = NULL, cnt = 0;
-int *next = NULL, index = 0;
+int next[100], index = 0;
 int pnum, rnum;
 
 void get_size(void)
@@ -151,34 +151,39 @@ void printResult(void)
 	printf("\n");
 }
 
-int isCyclic(int v, int parent)
+int isCyclic(int v, int parent, int *i)
 {
 	nodePointer w;
-	int i;
 
 	visited[v] = TRUE;                
 
-	for (w = graph[v], i = 0; w; w = w->link) {
-		if (index > 0 && w->vertex == next[i]) {
-			i++;
+	for (w = graph[v]; w; w = w->link) {
+		if (index > *i && w->vertex == next[*i]) {
+			(*i)++;
+			
+			if (graph[(w->link)->vertex]->vertex == next[*i])
+				next[index++] = next[*i];
+
 			continue;
 		}
 
 		if (!visited[w->vertex]) {
-			if (isCyclic(w->vertex, v)) {
+			if (isCyclic(w->vertex, v, &(*i))) {
 				cycle[cnt++] = w->vertex;
+				visited[v] = FALSE;
 
 				if (w->link != NULL)
 					next[index++] = w->vertex;
 
-				visited[v] = FALSE;
-				
 				return TRUE;
 			}
 		}
 		else if (w->vertex != parent) {
 			cycle[cnt++] = w->vertex;
 			visited[v] = FALSE;
+
+			if (w->link != NULL)
+				next[index++] = w->vertex;
 
 			return TRUE;
 		}
@@ -189,19 +194,24 @@ int isCyclic(int v, int parent)
 
 void cycleCheck(int num)
 {
-	int i, j, k;
-	int check = 0;
+	int i, j;
+	int check = 0; // cycle °³¼ö
+	int now = 0;
 
 	visited = (int*)malloc((num + 1) * sizeof(int));
 	cycle = (int*)malloc((num + 1) * sizeof(int));
-	next = (int*)malloc((num + 1) * sizeof(int));
 
 	for (i = 0; i <= num; i++)
-		visited[i] = cycle[i] = next[i] = 0;
+		visited[i] = cycle[i] = 0;
+
+	for (i = 0; i < 100; i++)
+		next[i] = 0;
+
+	printf("cycle\n");
 
 	for (i = 1; i <= num; i++) {
 		if (!visited[i]) {
-			if (isCyclic(i, -1)) {
+			if (isCyclic(i, -1, &now)) {
 				if (cnt < 2)
 					continue;
 
@@ -218,22 +228,16 @@ void cycleCheck(int num)
 				}
 				printf("\n");
 
-				if (index > 0)
+				if (now <= index)
 					i--;
 			}
 			else {
-				for (j = i + 1, k = 0; j <= num; j++) {
-					if (j == next[k]) {
-						visited[j] = TRUE;
-						k++;
-					}
-					else
-						visited[j] = FALSE;
-				}
+				visited[i] = TRUE;
+				next[index++] = i;
 
-				index = 0;
+				for (j = i+1; j <= num; j++)
+					visited[j] = FALSE;
 			}
-
 			cnt = 0;
 		}
 	}
